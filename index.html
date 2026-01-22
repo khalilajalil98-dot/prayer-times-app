@@ -46,10 +46,11 @@ body{
 .controls{
   display:flex;
   gap:6px;
-  margin-top:8px;
+  justify-content:center;
+  margin-top:10px;
 }
 select,button{
-  padding:6px;
+  padding:6px 10px;
   border-radius:10px;
   border:1px solid #1b5e20;
   background:#fff;
@@ -58,6 +59,12 @@ select,button{
   margin:15px 0;
   font-size:18px;
   color:#1b5e20;
+}
+.download{
+  background:#1b5e20;
+  color:white;
+  border:none;
+  margin:10px 0;
 }
 </style>
 </head>
@@ -74,17 +81,15 @@ select,button{
 </div>
 
 <div class="countdown" id="countdown">⏳ جاري الحساب...</div>
+
+<button class="download" onclick="downloadAdhan()">⬇️ تحميل أصوات الأذان</button>
+<p id="downloadStatus"></p>
+
 <div id="prayers"></div>
 
 <audio id="adhan"></audio>
 
 <script>
-Notification.requestPermission();
-
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js');
-}
-
 const prayerNames={
   Fajr:'الفجر',
   Dhuhr:'الظهر',
@@ -94,119 +99,124 @@ const prayerNames={
 };
 
 const adhanSounds=[
-  {name:'أذان مكة',file:'adhan1.mp3'},
-  {name:'أذان المدينة',file:'adhan2.mp3'},
-  {name:'أذان الحرم',file:'adhan3.mp3'},
-  {name:'أذان الأقصى',file:'adhan4.mp3'},
-  {name:'أذان مصر',file:'adhan5.mp3'},
-  {name:'أذان تركي',file:'adhan6.mp3'},
-  {name:'أذان مغربي',file:'adhan7.mp3'},
-  {name:'أذان حجازي',file:'adhan8.mp3'},
-  {name:'أذان هادئ',file:'adhan9.mp3'},
-  {name:'أذان اندونيسي',file:'adhan10.mp3'}
+ {name:'أذان مكة',file:'adhan1.mp3'},
+ {name:'أذان المدينة',file:'adhan2.mp3'},
+ {name:'أذان الحرم',file:'adhan3.mp3'},
+ {name:'أذان الأقصى',file:'adhan4.mp3'},
+ {name:'أذان مصر',file:'adhan5.mp3'},
+ {name:'أذان تركي',file:'adhan6.mp3'},
+ {name:'أذان مغربي',file:'adhan7.mp3'},
+ {name:'أذان حجازي',file:'adhan8.mp3'},
+ {name:'أذان هادئ',file:'adhan9.mp3'},
+ {name:'أذان اندونيسي',file:'adhan10.mp3'}
 ];
 
 function getLocation(){
-  navigator.geolocation.getCurrentPosition(pos=>{
-    loadTimings(pos.coords.latitude,pos.coords.longitude);
-  },()=>{
-    document.getElementById("location").innerText="يرجى السماح بالموقع";
-  });
+ navigator.geolocation.getCurrentPosition(pos=>{
+  loadTimings(pos.coords.latitude,pos.coords.longitude);
+ },()=>{
+  document.getElementById("location").innerText="يرجى السماح بالموقع";
+ });
 }
 
 async function loadTimings(lat,lon){
-  document.getElementById("location").innerText="📍 تم تحديد الموقع بنجاح";
-  const res=await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=0`);
-  const data=await res.json();
-  showTimings(data.data.timings);
+ document.getElementById("location").innerText="📍 تم تحديد الموقع بنجاح";
+ const res=await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=0`);
+ const data=await res.json();
+ showTimings(data.data.timings);
 }
 
 function showTimings(t){
-  let html='';
-  let now=new Date();
-  let nextTime=null;
-  let nextName='';
+ let html='';
+ let now=new Date();
+ let nextTime=null;
+ let nextName='';
 
-  for(let k in prayerNames){
-    let [h,m]=t[k].split(':');
-    let pt=new Date();
-    pt.setHours(h,m,0);
+ for(let k in prayerNames){
+  let [h,m]=t[k].split(':');
+  let pt=new Date();
+  pt.setHours(h,m,0);
 
-    if(pt>now && !nextTime){
-      nextTime=pt;
-      nextName=prayerNames[k];
-      scheduleNotification(nextName,pt);
-    }
-
-    html+=`
-    <div class="card">
-      <div class="prayer">
-        <div class="prayer-name">${prayerNames[k]}</div>
-        <div>${t[k]}</div>
-      </div>
-      <div class="controls">
-        <select onchange="saveSound('${k}',this.value)">
-          ${adhanSounds.map(a=>`<option value="${a.file}">${a.name}</option>`).join('')}
-        </select>
-        <button id="btn_${k}" onclick="togglePrayer('${k}')">🔔</button>
-      </div>
-    </div>`;
+  if(pt>now && !nextTime){
+    nextTime=pt;
+    nextName=prayerNames[k];
+    scheduleNotification(nextName,pt,k);
   }
 
-  document.getElementById("prayers").innerHTML=html;
-
-  for(let k in prayerNames){
-    const btn=document.getElementById('btn_'+k);
-    btn.innerText=isPrayerEnabled(k)?'🔔':'🔕';
-  }
-
-  startCountdown(nextTime,nextName);
+  html+=`
+  <div class="card">
+    <div class="prayer">
+      <div class="prayer-name">${prayerNames[k]}</div>
+      <div>${t[k]}</div>
+    </div>
+    <div class="controls">
+      <select onchange="saveSound('${k}',this.value)">
+        ${adhanSounds.map(a=>`<option value="${a.file}">${a.name}</option>`).join('')}
+      </select>
+      <button onclick="toggleMute('${k}')">
+        ${localStorage.getItem('mute_'+k)==='yes'?'🔕':'🔔'}
+      </button>
+    </div>
+  </div>`;
+ }
+ document.getElementById("prayers").innerHTML=html;
+ startCountdown(nextTime,nextName);
 }
 
 function saveSound(p,f){
-  localStorage.setItem('sound_'+p,f);
+ localStorage.setItem('sound_'+p,f);
 }
 
-function togglePrayer(prayer){
-  const key='enabled_'+prayer;
-  const current=localStorage.getItem(key);
-
-  if(current==='false'){
-    localStorage.setItem(key,'true');
-    document.getElementById('btn_'+prayer).innerText='🔔';
-  }else{
-    localStorage.setItem(key,'false');
-    document.getElementById('btn_'+prayer).innerText='🔕';
-  }
-}
-
-function isPrayerEnabled(prayer){
-  return localStorage.getItem('enabled_'+prayer)!=='false';
+function toggleMute(p){
+ let key='mute_'+p;
+ if(localStorage.getItem(key)==='yes'){
+  localStorage.removeItem(key);
+ }else{
+  localStorage.setItem(key,'yes');
+ }
+ location.reload();
 }
 
 function startCountdown(time,name){
-  setInterval(()=>{
-    let diff=time-new Date();
-    if(diff<0) return;
-    let h=Math.floor(diff/3600000);
-    let m=Math.floor((diff%3600000)/60000);
-    let s=Math.floor((diff%60000)/1000);
-    document.getElementById("countdown").innerText=
-      `الصلاة القادمة: ${name} بعد ${h}:${m}:${s}`;
-  },1000);
+ setInterval(()=>{
+  let diff=time-new Date();
+  if(diff<0) return;
+  let h=Math.floor(diff/3600000);
+  let m=Math.floor((diff%3600000)/60000);
+  let s=Math.floor((diff%60000)/1000);
+  document.getElementById("countdown").innerText=
+   `الصلاة القادمة: ${name} بعد ${h}:${m}:${s}`;
+ },1000);
 }
 
-function scheduleNotification(name,time){
-  if(Notification.permission!=="granted") return;
-  const delay=time-new Date();
-  if(delay<=0) return;
+function scheduleNotification(name,time,p){
+ if(Notification.permission!=="granted"){
+  Notification.requestPermission();
+  return;
+ }
+ const delay=time-new Date();
+ setTimeout(()=>{
+  new Notification("🕌 وقت الصلاة",{body:`حان وقت صلاة ${name}`,icon:"icon.png"});
+  if(localStorage.getItem('mute_'+p)!=='yes'){
+    const audio=document.getElementById("adhan");
+    audio.src=localStorage.getItem('sound_'+p)||adhanSounds[0].file;
+    audio.play();
+  }
+ },delay);
+}
 
-  setTimeout(()=>{
-    new Notification("🕌 وقت الصلاة",{
-      body:`حان الآن وقت صلاة ${name}`,
-      icon:"icon.png"
-    });
-  },delay);
+async function downloadAdhan(){
+ const status=document.getElementById("downloadStatus");
+ status.innerText="⏳ جاري التحميل...";
+ try{
+  for(let a of adhanSounds){
+   await fetch(a.file,{cache:"reload"});
+  }
+  localStorage.setItem("adhan_downloaded","yes");
+  status.innerText="✅ تم تحميل جميع أصوات الأذان";
+ }catch{
+  status.innerText="❌ فشل التحميل";
+ }
 }
 
 getLocation();
