@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>مواقيت الصلاة</title>
+<title>🕌 مواقيت الصلاة – صدقة جارية</title>
+
+<meta name="theme-color" content="#1b5e20">
 
 <style>
 body{
@@ -19,6 +21,17 @@ body{
   padding:20px;
   border-radius:20px;
 }
+.sadaqa{
+  margin-top:10px;
+  font-size:14px;
+  color:#e8f5e9;
+  line-height:1.8;
+}
+.countdown{
+  margin:15px 0;
+  font-size:18px;
+  color:#1b5e20;
+}
 .card{
   background:#fff;
   margin:12px 0;
@@ -26,25 +39,44 @@ body{
   border-radius:18px;
   box-shadow:0 3px 10px rgba(0,0,0,.1);
 }
-button{
-  padding:12px;
-  border-radius:15px;
-  border:none;
-  background:#1b5e20;
-  color:#fff;
-  font-size:16px;
-  width:90%;
-  max-width:300px;
-}
-.countdown{
-  margin:15px 0;
-  font-size:18px;
-  color:#1b5e20;
-}
 .prayer{
   display:flex;
   justify-content:space-between;
+  align-items:center;
+}
+.prayer-name{
   font-weight:bold;
+  color:#1b5e20;
+}
+.controls{
+  display:flex;
+  gap:6px;
+  margin-top:8px;
+}
+select,button{
+  padding:6px;
+  border-radius:10px;
+  border:1px solid #1b5e20;
+}
+#duaBox{
+  background:#ffffff;
+  margin:15px 0;
+  padding:18px;
+  border-radius:18px;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+  font-size:16px;
+  line-height:2;
+  color:#1b5e20;
+  transition:opacity 0.5s ease-in-out;
+}
+#downloadBtn{
+  background:#1b5e20;
+  color:white;
+  padding:10px 20px;
+  border:none;
+  border-radius:15px;
+  font-size:16px;
+  margin:15px 0;
 }
 </style>
 </head>
@@ -53,18 +85,24 @@ button{
 
 <div class="header">
   <h2>🕌 مواقيت الصلاة</h2>
-  <p>
-    صدقة جارية لروح منى ناجي علي أحمد<br>
-    رحمها الله رحمةً واسعة 🤍<br>
-    <small>ابنك المخلص محمد عبدالله محمد</small>
-  </p>
-  <p id="status">📍 اضغط لتحديد موقعك</p>
+  <div class="sadaqa">
+    صدقة جارية لروح منى ناجي علي أحمد  
+    <br>رحمها الله رحمةً واسعة 🤍  
+    <br>ابنك المخلص محمد عبدالله محمد
+  </div>
+  <p id="location">⏳ جاري تحديد الموقع...</p>
 </div>
 
-<button onclick="getLocation()">📍 تحديد الموقع</button>
+<div class="countdown" id="countdown">⏳ جاري الحساب...</div>
 
-<div class="countdown" id="countdown"></div>
+<div id="duaBox">🤲 جاري عرض الدعاء...</div>
+
+<button id="downloadBtn" onclick="downloadAdhan()">⬇️ تحميل أصوات الأذان</button>
+<p id="downloadStatus"></p>
+
 <div id="prayers"></div>
+
+<audio id="adhan"></audio>
 
 <script>
 const prayerNames={
@@ -75,26 +113,76 @@ const prayerNames={
   Isha:'العشاء'
 };
 
+const adhanSounds=[
+  {name:'أذان مكة',file:'adhan1.mp3'},
+  {name:'أذان المدينة',file:'adhan2.mp3'},
+  {name:'أذان الحرم',file:'adhan3.mp3'},
+  {name:'أذان الأقصى',file:'adhan4.mp3'},
+  {name:'أذان مصر',file:'adhan5.mp3'},
+  {name:'أذان تركي',file:'adhan6.mp3'},
+  {name:'أذان مغربي',file:'adhan7.mp3'},
+  {name:'أذان حجازي',file:'adhan8.mp3'},
+  {name:'أذان هادئ',file:'adhan9.mp3'},
+  {name:'أذان اندونيسي',file:'adhan10.mp3'}
+];
+
+const duas=[
+  "اللهم اغفر لأمي منى ناجي علي أحمد، وارحمها رحمةً واسعة 🤍",
+  "اللهم نوّر قبر أمي واجعلها من أهل الفردوس الأعلى 🤲",
+  "اللهم اجعل كل صلاة وأذان في ميزان حسنات أمي 🌿",
+  "اللهم اجزِ أمي عني خير الجزاء وبدّل حزنها فرحًا 🤍",
+  "صدقة جارية لروح أمي — ابنها المخلص محمد عبدالله محمد 🤍"
+];
+
+let duaIndex=0;
+function rotateDua(){
+  const box=document.getElementById("duaBox");
+  box.style.opacity=0;
+  setTimeout(()=>{
+    box.innerText=duas[duaIndex];
+    box.style.opacity=1;
+    duaIndex=(duaIndex+1)%duas.length;
+  },500);
+}
+rotateDua();
+setInterval(rotateDua,10000);
+
+/* ⭐ تحسين تحديد الموقع */
 function getLocation(){
-  document.getElementById("status").innerText="⏳ جاري تحديد الموقع...";
-  navigator.geolocation.getCurrentPosition(
-    pos=>{
-      loadTimings(pos.coords.latitude,pos.coords.longitude);
-    },
-    ()=>{
-      document.getElementById("status").innerText=
-        "❌ لم يتم السماح بالموقع – يرجى تفعيل GPS من إعدادات الهاتف";
+  const saved = localStorage.getItem("last_location");
+
+  if(saved){
+    const data = JSON.parse(saved);
+    document.getElementById("location").innerText="📍 تم استخدام الموقع المحفوظ";
+    showTimings(data.timings);
+  }
+
+  navigator.geolocation.getCurrentPosition(pos=>{
+    loadTimings(pos.coords.latitude,pos.coords.longitude);
+  },()=>{
+    if(!saved){
+      document.getElementById("location").innerText="❌ تعذّر تحديد الموقع";
     }
-  );
+  },{
+    enableHighAccuracy:true,
+    timeout:7000,
+    maximumAge:3600000
+  });
 }
 
 async function loadTimings(lat,lon){
-  document.getElementById("status").innerText="✅ تم تحديد الموقع بنجاح";
-  const res=await fetch(
-    `https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=5`
-  );
+  document.getElementById("location").innerText="📡 تحديث الموقع...";
+  const res=await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=0`);
   const data=await res.json();
+
+  localStorage.setItem("last_location",JSON.stringify({
+    lat:lat,
+    lon:lon,
+    timings:data.data.timings
+  }));
+
   showTimings(data.data.timings);
+  document.getElementById("location").innerText="📍 الموقع محدّث";
 }
 
 function showTimings(t){
@@ -114,9 +202,17 @@ function showTimings(t){
     }
 
     html+=`
-    <div class="card prayer">
-      <span>${prayerNames[k]}</span>
-      <span>${t[k]}</span>
+    <div class="card">
+      <div class="prayer">
+        <div class="prayer-name">${prayerNames[k]}</div>
+        <div>${t[k]}</div>
+      </div>
+      <div class="controls">
+        <select onchange="localStorage.setItem('sound_${k}',this.value)">
+          ${adhanSounds.map(a=>`<option value="${a.file}">${a.name}</option>`).join('')}
+        </select>
+        <button onclick="playAdhan('${k}')">🔔</button>
+      </div>
     </div>`;
   }
 
@@ -124,18 +220,33 @@ function showTimings(t){
   startCountdown(nextTime,nextName);
 }
 
+function playAdhan(p){
+  const audio=document.getElementById("adhan");
+  audio.src=localStorage.getItem('sound_'+p)||adhanSounds[0].file;
+  audio.play();
+}
+
 function startCountdown(time,name){
   setInterval(()=>{
-    if(!time) return;
     let diff=time-new Date();
     if(diff<0) return;
-    let h=Math.floor(diff/3600000);
-    let m=Math.floor((diff%3600000)/60000);
+    let m=Math.floor(diff/60000);
     let s=Math.floor((diff%60000)/1000);
     document.getElementById("countdown").innerText=
-      `الصلاة القادمة: ${name} بعد ${h}:${m}:${s}`;
+      `الصلاة القادمة: ${name} بعد ${m} دقيقة و ${s} ثانية`;
   },1000);
 }
+
+async function downloadAdhan(){
+  const s=document.getElementById("downloadStatus");
+  s.innerText="⏳ جاري تحميل الأذان...";
+  for(let a of adhanSounds){
+    await fetch(a.file,{cache:"reload"});
+  }
+  s.innerText="✅ تم تحميل أصوات الأذان";
+}
+
+getLocation();
 </script>
 
 </body>
