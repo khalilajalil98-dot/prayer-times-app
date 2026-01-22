@@ -1,171 +1,170 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>مواقيت الصلاة</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مواقيت الصلاة</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f3f8f2;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-    }
-
-    .card {
-      background: #1b5e20;
-      color: white;
-      padding: 20px;
-      border-radius: 15px;
-      margin-bottom: 15px;
-    }
-
-    .prayer {
-      background: white;
-      padding: 15px;
-      border-radius: 12px;
-      margin: 10px 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 18px;
-    }
-
-    button {
-      background: #1b5e20;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      margin: 10px 0;
-    }
-
-    input[type="checkbox"] {
-      transform: scale(1.3);
-    }
-  </style>
+<style>
+body{
+  font-family:Tahoma,Arial;
+  background:#f3f8f3;
+  margin:0;
+  padding:15px;
+}
+.sadaqa{
+  background:#e8f5e9;
+  padding:15px;
+  border-radius:12px;
+  text-align:center;
+  margin-bottom:15px;
+  color:#1b5e20;
+  font-weight:bold;
+}
+.header{
+  background:#1b5e20;
+  color:#fff;
+  padding:20px;
+  border-radius:15px;
+  text-align:center;
+  font-size:22px;
+  margin-bottom:15px;
+}
+select,button{
+  width:100%;
+  padding:14px;
+  font-size:16px;
+  border-radius:12px;
+  margin-bottom:10px;
+}
+button{
+  background:#2e7d32;
+  color:#fff;
+  border:none;
+}
+.prayer{
+  background:#fff;
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.toggle{
+  transform:scale(1.3);
+}
+</style>
 </head>
 
 <body>
 
-  <div class="card">
-    <h2>مواقيت الصلاة</h2>
-    <p id="status">اضغط لتفعيل الموقع الجغرافي</p>
-  </div>
+<div class="sadaqa">
+🤍 صدقة جارية لروح<br>
+<strong>منى ناجي علي</strong><br>
+رحمها الله رحمةً واسعة
+</div>
 
-  <button onclick="enableLocation()">📍 تفعيل الموقع الجغرافي</button>
-  <button onclick="enableAlerts()">🔔 تفعيل تنبيهات الأذان</button>
+<div class="header">مواقيت الصلاة</div>
 
-  <!-- الصلوات -->
-  <div class="prayer">
-    <span>الفجر</span>
-    <span id="fajr">--</span>
-    <input type="checkbox" id="alarm-fajr" checked>
-  </div>
+<select id="adhanSelect">
+  <option value="adhan-makkah.mp3">أذان مكة</option>
+  <option value="adhan-madina.mp3">أذان المدينة</option>
+  <option value="adhan-short.mp3">أذان قصير</option>
+</select>
 
-  <div class="prayer">
-    <span>الشروق</span>
-    <span id="sunrise">--</span>
-  </div>
+<button onclick="saveAdhan()">💾 حفظ صوت الأذان</button>
+<button onclick="getLocation()">📍 تفعيل الموقع الجغرافي</button>
 
-  <div class="prayer">
-    <span>الظهر</span>
-    <span id="dhuhr">--</span>
-    <input type="checkbox" id="alarm-dhuhr" checked>
-  </div>
+<audio id="adhan"></audio>
 
-  <div class="prayer">
-    <span>العصر</span>
-    <span id="asr">--</span>
-    <input type="checkbox" id="alarm-asr" checked>
-  </div>
+<div id="prayers"></div>
 
-  <div class="prayer">
-    <span>المغرب</span>
-    <span id="maghrib">--</span>
-    <input type="checkbox" id="alarm-maghrib" checked>
-  </div>
+<script>
+const prayerNames = {
+  Fajr:"الفجر",
+  Dhuhr:"الظهر",
+  Asr:"العصر",
+  Maghrib:"المغرب",
+  Isha:"العشاء"
+};
 
-  <div class="prayer">
-    <span>العشاء</span>
-    <span id="isha">--</span>
-    <input type="checkbox" id="alarm-isha" checked>
-  </div>
+const adhan = document.getElementById("adhan");
+const select = document.getElementById("adhanSelect");
 
-  <!-- صوت الأذان -->
-  <audio id="adhan" src="https://www.islamicfinder.org/prayer-times/adhaan/makkah_5.mp3"></audio>
+// تحميل الصوت المختار
+const savedSound = localStorage.getItem("adhanSound");
+adhan.src = savedSound || select.value;
+if(savedSound) select.value = savedSound;
 
-  <script>
-    let alertsEnabled = false;
+// تحميل إعدادات التشغيل
+let prayerSettings = JSON.parse(localStorage.getItem("prayerSettings")) || {};
 
-    function enableLocation() {
-      if (!navigator.geolocation) {
-        alert("المتصفح لا يدعم الموقع الجغرافي");
-        return;
+function saveAdhan(){
+  localStorage.setItem("adhanSound", select.value);
+  adhan.src = select.value;
+  alert("تم حفظ صوت الأذان");
+}
+
+function getLocation(){
+  navigator.geolocation.getCurrentPosition(
+    pos => loadTimes(pos.coords.latitude, pos.coords.longitude),
+    () => alert("لم يتم السماح بالموقع")
+  );
+}
+
+function loadTimes(lat, lon){
+  fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=4`)
+    .then(r=>r.json())
+    .then(data=>{
+      const timings = data.data.timings;
+      const container = document.getElementById("prayers");
+      container.innerHTML="";
+
+      for(let key in prayerNames){
+        if(prayerSettings[key] === undefined)
+          prayerSettings[key] = true;
+
+        const div = document.createElement("div");
+        div.className="prayer";
+        div.innerHTML=`
+          <span>${prayerNames[key]} - ${timings[key]}</span>
+          <input type="checkbox" class="toggle"
+            ${prayerSettings[key] ? "checked":""}
+            onchange="togglePrayer('${key}',this.checked)">
+        `;
+        container.appendChild(div);
+
+        scheduleAdhan(key,timings[key]);
       }
+      localStorage.setItem("prayerSettings",JSON.stringify(prayerSettings));
+    });
+}
 
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          document.getElementById("status").innerText = "✅ تم تحديد الموقع بنجاح";
-          loadPrayerTimes(pos.coords.latitude, pos.coords.longitude);
-        },
-        () => {
-          document.getElementById("status").innerText = "❌ لم يتم السماح بالموقع";
-        }
-      );
-    }
+function togglePrayer(prayer,value){
+  prayerSettings[prayer]=value;
+  localStorage.setItem("prayerSettings",JSON.stringify(prayerSettings));
+}
 
-    function loadPrayerTimes(lat, lon) {
-      const today = new Date();
-      const date = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
+function scheduleAdhan(prayer,time){
+  if(!prayerSettings[prayer]) return;
 
-      fetch(`https://api.aladhan.com/v1/timings/${date}?latitude=${lat}&longitude=${lon}&method=2`)
-        .then(res => res.json())
-        .then(data => {
-          const t = data.data.timings;
-          document.getElementById("fajr").innerText = t.Fajr;
-          document.getElementById("sunrise").innerText = t.Sunrise;
-          document.getElementById("dhuhr").innerText = t.Dhuhr;
-          document.getElementById("asr").innerText = t.Asr;
-          document.getElementById("maghrib").innerText = t.Maghrib;
-          document.getElementById("isha").innerText = t.Isha;
-        });
-    }
+  const now = new Date();
+  const [h,m]=time.split(":");
+  const t=new Date();
+  t.setHours(h,m,0);
 
-    function enableAlerts() {
-      alertsEnabled = true;
-      const a = document.getElementById("adhan");
-      a.play();
-      setTimeout(() => a.pause(), 2000);
-      alert("تم تفعيل تنبيهات الأذان");
-    }
+  const diff=t-now;
+  if(diff>0){
+    setTimeout(()=>adhan.play(),diff);
+  }
+}
 
-    setInterval(() => {
-      if (!alertsEnabled) return;
-
-      const now = new Date();
-      const current = now.getHours() + ":" + now.getMinutes().toString().padStart(2, "0");
-
-      check("fajr", current);
-      check("dhuhr", current);
-      check("asr", current);
-      check("maghrib", current);
-      check("isha", current);
-    }, 60000);
-
-    function check(name, time) {
-      const t = document.getElementById(name).innerText;
-      const enabled = document.getElementById("alarm-" + name)?.checked;
-
-      if (enabled && t === time) {
-        document.getElementById("adhan").play();
-      }
-    }
-  </script>
+// Service Worker
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
 
 </body>
 </html>
