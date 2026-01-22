@@ -46,11 +46,13 @@ body{
 .controls{
   display:flex;
   gap:6px;
+  margin-top:8px;
 }
 select,button{
   padding:6px;
   border-radius:10px;
   border:1px solid #1b5e20;
+  background:#fff;
 }
 .countdown{
   margin:15px 0;
@@ -77,6 +79,8 @@ select,button{
 <audio id="adhan"></audio>
 
 <script>
+Notification.requestPermission();
+
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js');
 }
@@ -144,12 +148,18 @@ function showTimings(t){
         <select onchange="saveSound('${k}',this.value)">
           ${adhanSounds.map(a=>`<option value="${a.file}">${a.name}</option>`).join('')}
         </select>
-        <button onclick="playAdhan('${k}')">🔔</button>
+        <button id="btn_${k}" onclick="togglePrayer('${k}')">🔔</button>
       </div>
     </div>`;
   }
 
   document.getElementById("prayers").innerHTML=html;
+
+  for(let k in prayerNames){
+    const btn=document.getElementById('btn_'+k);
+    btn.innerText=isPrayerEnabled(k)?'🔔':'🔕';
+  }
+
   startCountdown(nextTime,nextName);
 }
 
@@ -157,10 +167,21 @@ function saveSound(p,f){
   localStorage.setItem('sound_'+p,f);
 }
 
-function playAdhan(p){
-  const audio=document.getElementById("adhan");
-  audio.src=localStorage.getItem('sound_'+p)||adhanSounds[0].file;
-  audio.play();
+function togglePrayer(prayer){
+  const key='enabled_'+prayer;
+  const current=localStorage.getItem(key);
+
+  if(current==='false'){
+    localStorage.setItem(key,'true');
+    document.getElementById('btn_'+prayer).innerText='🔔';
+  }else{
+    localStorage.setItem(key,'false');
+    document.getElementById('btn_'+prayer).innerText='🔕';
+  }
+}
+
+function isPrayerEnabled(prayer){
+  return localStorage.getItem('enabled_'+prayer)!=='false';
 }
 
 function startCountdown(time,name){
@@ -176,18 +197,15 @@ function startCountdown(time,name){
 }
 
 function scheduleNotification(name,time){
-  if(Notification.permission!=="granted"){
-    Notification.requestPermission();
-    return;
-  }
+  if(Notification.permission!=="granted") return;
   const delay=time-new Date();
+  if(delay<=0) return;
+
   setTimeout(()=>{
     new Notification("🕌 وقت الصلاة",{
       body:`حان الآن وقت صلاة ${name}`,
       icon:"icon.png"
     });
-    document.getElementById("adhan").src=adhanSounds[0].file;
-    document.getElementById("adhan").play();
   },delay);
 }
 
