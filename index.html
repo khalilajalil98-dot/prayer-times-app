@@ -1,9 +1,66 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مواقيت الصلاة</title>
+
+<style>
+body {
+  font-family: Tahoma;
+  background: #f4f9f4;
+  text-align: center;
+  margin: 0;
+  padding: 15px;
+}
+.header {
+  background: #1b5e20;
+  color: #fff;
+  padding: 15px;
+  border-radius: 12px;
+}
+.sadaqa {
+  background: #e8f5e9;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  color: #1b5e20;
+  font-weight: bold;
+}
+.card {
+  background: #fff;
+  margin: 8px 0;
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  box-shadow: 0 2px 6px rgba(0,0,0,.1);
+}
+</style>
+</head>
+
+<body>
+
+<div class="sadaqa">
+  صدقة جارية لروح المرحومة 🤍<br>
+  <strong>منى ناجي علي</strong>
+</div>
+
+<div class="header">
+  <h2>مواقيت الصلاة</h2>
+  <p id="city">جاري تحديد الموقع...</p>
+</div>
+
+<div class="card"><span>الفجر</span><span id="fajr">--</span></div>
+<div class="card"><span>الشروق</span><span id="sunrise">--</span></div>
+<div class="card"><span>الظهر</span><span id="dhuhr">--</span></div>
+<div class="card"><span>العصر</span><span id="asr">--</span></div>
+<div class="card"><span>المغرب</span><span id="maghrib">--</span></div>
+<div class="card"><span>العشاء</span><span id="isha">--</span></div>
+
 <script>
 function loadPrayerTimes(lat, lon) {
-  const today = new Date();
-  const date = `${today.getDate()}-${today.getMonth()+1}-${today.getFullYear()}`;
-
-  fetch(`https://api.aladhan.com/v1/timings/${date}?latitude=${lat}&longitude=${lon}&method=5`)
+  fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=4`)
     .then(res => res.json())
     .then(data => {
       const t = data.data.timings;
@@ -19,13 +76,19 @@ function loadPrayerTimes(lat, lon) {
 if (navigator.geolocation) {
   navigator.geolocation.getCurrentPosition(
     pos => {
-      loadPrayerTimes(pos.coords.latitude, pos.coords.longitude);
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      document.getElementById("city").innerText = "حسب موقعك الحالي";
+      loadPrayerTimes(lat, lon);
     },
     () => {
-      alert("يرجى السماح بتحديد الموقع");
+      document.getElementById("city").innerText = "لم يتم السماح بالموقع";
     }
   );
 } else {
-  alert("المتصفح لا يدعم تحديد الموقع");
+  document.getElementById("city").innerText = "الموقع غير مدعوم";
 }
 </script>
+
+</body>
+</html>
